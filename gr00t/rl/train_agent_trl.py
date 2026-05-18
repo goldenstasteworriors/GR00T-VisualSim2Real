@@ -211,17 +211,19 @@ def main(config: OmegaConf):
     # --- Isaac Sim setup ---
     simulator_type = config.simulator["_target_"].split(".")[-1]
     if simulator_type == "IsaacSim":
+        isaacsim_version_path = Path(__file__).resolve().parent / "simulator/isaacsim/.isaacsim_version"
         try:
-            with open("./rl/simulator/isaacsim/.isaacsim_version", "r", encoding="utf-8") as f:
-                DEFAULT_ISAACSIM_VERSION = f.read().strip()
+            DEFAULT_ISAACSIM_VERSION = isaacsim_version_path.read_text(encoding="utf-8").strip()
         except FileNotFoundError:
-            DEFAULT_ISAACSIM_VERSION = "4.5"
+            DEFAULT_ISAACSIM_VERSION = "5.1"
 
-        if DEFAULT_ISAACSIM_VERSION == "4.5":
+        if DEFAULT_ISAACSIM_VERSION in {"4.5", "5.1"}:
             from isaaclab.app import AppLauncher
         elif DEFAULT_ISAACSIM_VERSION == "4.2":
             logger.warning("Using IsaacSim 4.2")
             from omni.isaac.lab.app import AppLauncher
+        else:
+            raise ValueError(f"Unsupported IsaacSim version: {DEFAULT_ISAACSIM_VERSION}")
 
         import argparse
 

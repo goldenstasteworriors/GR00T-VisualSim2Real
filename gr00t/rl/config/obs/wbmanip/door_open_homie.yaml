@@ -62,7 +62,7 @@ obs:
     ]
 
   # define those coumpounds in obs_dict, for example, you can define different long/short history with different length
-  obs_auxiliary: 
+  obs_auxiliary:
     history_long: {
       dof_pos: 20,
       relative_to_door: 20,

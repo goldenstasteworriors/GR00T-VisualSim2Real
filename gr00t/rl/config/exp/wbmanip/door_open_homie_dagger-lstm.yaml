@@ -133,7 +133,7 @@ simulator:
     cameras:
       enable_cameras: true
       camera_types:
-        - rgb: true 
+        - rgb: true
         - depth: false
       camera_resolutions: [216, 384]
       camera_attached_link: "d435_link"

@@ -107,27 +107,30 @@ def main(override_config: OmegaConf):
 
     # --- Load and merge training config from checkpoint directory ---
     if override_config.checkpoint is not None:
-        has_config = True
         checkpoint = Path(override_config.checkpoint)
+        if not checkpoint.exists():
+            raise FileNotFoundError(
+                f"Checkpoint does not exist: {checkpoint}. "
+                "Pass a real checkpoint path or download/copy the checkpoint first."
+            )
+
         config_path = checkpoint.parent / "config.yaml"
         if not config_path.exists():
             config_path = checkpoint.parent.parent / "config.yaml"
             if not config_path.exists():
-                has_config = False
-                logger.error(f"Could not find config path: {config_path}")
+                raise FileNotFoundError(
+                    "Could not find training config for checkpoint. Expected config.yaml at "
+                    f"{checkpoint.parent / 'config.yaml'} or {checkpoint.parent.parent / 'config.yaml'}."
+                )
 
-        if has_config:
-            logger.info(f"Loading training config file from {config_path}")
-            with open(config_path) as file:
-                train_config = OmegaConf.load(file)
+        logger.info(f"Loading training config file from {config_path}")
+        with open(config_path) as file:
+            train_config = OmegaConf.load(file)
 
-            if train_config.eval_overrides is not None:
-                train_config = OmegaConf.merge(train_config, train_config.eval_overrides)
+        if train_config.eval_overrides is not None:
+            train_config = OmegaConf.merge(train_config, train_config.eval_overrides)
 
-            config = OmegaConf.merge(train_config, override_config)
-        else:
-            config = override_config
-
+        config = OmegaConf.merge(train_config, override_config)
         config.experiment_dir = checkpoint.parent
     else:
         if override_config.eval_overrides is not None:
@@ -153,17 +156,19 @@ def main(override_config: OmegaConf):
     # --- Setup Isaac Sim ---
     simulator_type = config.simulator["_target_"].split(".")[-1]
     if simulator_type == "IsaacSim":
+        isaacsim_version_path = Path(__file__).resolve().parent / "simulator/isaacsim/.isaacsim_version"
         try:
-            with open("./rl/simulator/isaacsim/.isaacsim_version", "r", encoding="utf-8") as f:
-                DEFAULT_ISAACSIM_VERSION = f.read().strip()
+            DEFAULT_ISAACSIM_VERSION = isaacsim_version_path.read_text(encoding="utf-8").strip()
         except FileNotFoundError:
-            DEFAULT_ISAACSIM_VERSION = "4.5"
+            DEFAULT_ISAACSIM_VERSION = "5.1"
 
-        if DEFAULT_ISAACSIM_VERSION == "4.5":
+        if DEFAULT_ISAACSIM_VERSION in {"4.5", "5.1"}:
             from isaaclab.app import AppLauncher
         elif DEFAULT_ISAACSIM_VERSION == "4.2":
             logger.warning("Using IsaacSim 4.2, replacing isaaclab with omni.isaac.lab")
             from omni.isaac.lab.app import AppLauncher
+        else:
+            raise ValueError(f"Unsupported IsaacSim version: {DEFAULT_ISAACSIM_VERSION}")
 
         import argparse
 

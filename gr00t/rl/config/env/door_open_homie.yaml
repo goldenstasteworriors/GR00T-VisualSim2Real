@@ -39,7 +39,7 @@ env:
       terminate_when_close_to_torque_limit: 0.25
 
     noise_to_initial_level: 0
-    init_noise_scale: 
+    init_noise_scale:
       dof_pos: 0.1
       dof_vel: 0.15
       root_pos: 0.05

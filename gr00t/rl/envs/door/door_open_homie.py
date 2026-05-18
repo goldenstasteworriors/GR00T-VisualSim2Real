@@ -2,21 +2,10 @@
 # SPDX-License-Identifier: Apache-2.0
 
 
-import omni.usd
+from __future__ import annotations
+
 import torch
 import torch.nn.functional as F
-from isaaclab.sensors import ContactSensor, ContactSensorCfg, FrameTransformer, FrameTransformerCfg
-from isaaclab.utils.math import (
-    axis_angle_from_quat,
-    euler_xyz_from_quat,
-    quat_apply,
-    quat_from_euler_xyz,
-    quat_inv,
-    quat_mul,
-    subtract_frame_transforms,
-    wrap_to_pi,
-)
-from pxr import Usd
 from typing_extensions import override
 
 from gr00t.rl.envs.base_task.delta_action_base import DeltaActionBase
@@ -27,6 +16,49 @@ from gr00t.rl.envs.base_task.warped_action_base import WarpedActionBase
 from gr00t.rl.envs.door.reset_from_dataset import ResetFromDataset
 from gr00t.rl.isaac_utils.rotations import quat_to_tan_norm, wxyz_to_xyzw, xyzw_to_wxyz
 from gr00t.rl.utils.torch_utils import torch_rand_float
+
+axis_angle_from_quat = None
+euler_xyz_from_quat = None
+quat_apply = None
+quat_from_euler_xyz = None
+quat_inv = None
+quat_mul = None
+subtract_frame_transforms = None
+wrap_to_pi = None
+
+
+def _ensure_isaaclab_math_imported():
+    global axis_angle_from_quat
+    global euler_xyz_from_quat
+    global quat_apply
+    global quat_from_euler_xyz
+    global quat_inv
+    global quat_mul
+    global subtract_frame_transforms
+    global wrap_to_pi
+
+    if quat_apply is not None:
+        return
+
+    from isaaclab.utils.math import (
+        axis_angle_from_quat as _axis_angle_from_quat,
+        euler_xyz_from_quat as _euler_xyz_from_quat,
+        quat_apply as _quat_apply,
+        quat_from_euler_xyz as _quat_from_euler_xyz,
+        quat_inv as _quat_inv,
+        quat_mul as _quat_mul,
+        subtract_frame_transforms as _subtract_frame_transforms,
+        wrap_to_pi as _wrap_to_pi,
+    )
+
+    axis_angle_from_quat = _axis_angle_from_quat
+    euler_xyz_from_quat = _euler_xyz_from_quat
+    quat_apply = _quat_apply
+    quat_from_euler_xyz = _quat_from_euler_xyz
+    quat_inv = _quat_inv
+    quat_mul = _quat_mul
+    subtract_frame_transforms = _subtract_frame_transforms
+    wrap_to_pi = _wrap_to_pi
 
 
 class DoorPregrasp(
@@ -45,6 +77,7 @@ class DoorPregrasp(
     STAGE_THROUGH = 5
 
     def __init__(self, config, device):
+        _ensure_isaaclab_math_imported()
         super().__init__(config, device)
 
         # finger primitive related
@@ -83,7 +116,9 @@ class DoorPregrasp(
         ]
 
         # read the door metadata
-        stage: Usd.Stage = omni.usd.get_context().get_stage()
+        import omni.usd
+
+        stage = omni.usd.get_context().get_stage()
         self.door_width = torch.zeros(self.num_envs, dtype=torch.float32, device=self.device)
         self.door_height = torch.zeros(self.num_envs, dtype=torch.float32, device=self.device)
         self.door_handle_height = torch.zeros(
@@ -951,6 +986,8 @@ class DoorPregrasp(
         return (self.simulator.robot_root_states[:, 0] - self.env_origins[:, 0]) > 1.5
 
     def scene_creation_callback(self, simulator):
+        from isaaclab.sensors import ContactSensor, ContactSensorCfg, FrameTransformer, FrameTransformerCfg
+
         door_frame_unwanted_contact_sensor_config: ContactSensorCfg = ContactSensorCfg(
             prim_path=f"/World/envs/env_.*/{simulator.task_config.target_obj}/root",
         )
