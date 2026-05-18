@@ -23,10 +23,14 @@ def spawn_random_dome_light(
     translation: tuple[float, float, float] | None = None,
     orientation: tuple[float, float, float, float] | None = None
 ):
-    if cfg.texture_file_folder is None:
-        raise ValueError("texture_file_folder is not set")
-    texture_file_list = list_files_with_extension(cfg.texture_file_folder, ".hdr", recursive=True)
-    print(f"Found {len(texture_file_list)} texture files in {cfg.texture_file_folder}")
+    if not cfg.texture_file_folders:
+        raise ValueError("texture_file_folders is not set")
+    texture_file_list = []
+    for folder in cfg.texture_file_folders:
+        files = list_files_with_extension(folder, ".hdr", recursive=True)
+        if files:
+            texture_file_list.extend(files)
+    print(f"Found {len(texture_file_list)} texture files from {len(cfg.texture_file_folders)} folders")
     prim: Usd.Prim = prim_utils.create_prim(prim_path, "DomeLight", translation=translation, orientation=orientation)
     dome_light_prim: UsdLux.DomeLight = UsdLux.DomeLight.Define(prim.GetStage(), prim_path)
     dome_light_prim.CreateTextureFileAttr().Set(np.random.choice(texture_file_list))
@@ -40,7 +44,7 @@ def spawn_random_dome_light(
 
 @configclass
 class RandomDomeLightCfg(sim_utils.DomeLightCfg):
-    texture_file_folder: str | None = None
+    texture_file_folders: list[str] = []
     intensity_range: tuple[float, float] = (1000.0, 5000.0)
     func: Callable = spawn_random_dome_light
     dynamic_randomize_texture: bool = False

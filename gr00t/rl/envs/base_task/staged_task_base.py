@@ -2,14 +2,18 @@
 # SPDX-License-Identifier: Apache-2.0
 
 
-from typing import Callable, Optional
+from __future__ import annotations
+
+from typing import TYPE_CHECKING, Callable, Optional
 
 import torch
 import torch.nn.functional as F
-from isaaclab.assets import Articulation, RigidObject
 from typing_extensions import override
 
 from gr00t.rl.envs.legged_base_task.legged_robot_base import LeggedRobotBase
+
+if TYPE_CHECKING:
+    from isaaclab.assets import Articulation, RigidObject
 
 
 class StagedTaskBase(LeggedRobotBase):
@@ -445,6 +449,8 @@ class StagedTaskBase(LeggedRobotBase):
         """
         if not self.enable_staged_reset:
             return
+
+        from isaaclab.assets import Articulation, RigidObject
 
         if self.config.simulator.config.name != "isaacsim":
             raise NotImplementedError("Staged reset is only supported in IsaacSim for now")

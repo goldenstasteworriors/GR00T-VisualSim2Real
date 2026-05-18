@@ -1,0 +1,127 @@
+# @package _global_
+
+defaults:
+  - /algo: ppo
+  - /env: door_open_homie
+  - /simulator: isaacsim
+  - /domain_rand: NO_domain_rand
+  - /rewards: wbmanip/reward_door_open_homie
+  - /robot: g1/g1_43dof
+  - /terrain: terrain_locomotion_plane
+  - /obs: wbmanip/door_open_homie
+  - /opt: wandb
+  - override /trainer: trl_homie_api
+
+exp_base: ${hydra:runtime.choices.exp}
+exp_var: lstm
+experiment_name: ${exp_base}_${exp_var}
+experiment_dir: ${base_dir}/${project_name}/${experiment_name}-${timestamp}
+
+num_envs: 4096
+project_name: g1_open_door_homie
+
+algo:
+  config:
+    entropy_coef: 0.01
+    use_new_actor_critic: True
+    num_steps_per_env: 64
+    num_learning_epochs: 5
+    num_mini_batches: 4
+    use_padding_mask: False
+    ppo_shuffle_every_epoch: True
+    sync_advantage_normalization: True
+    actor_learning_rate: 1.0e-4
+    critic_learning_rate: 1.0e-4
+    homie_walk_model_path: ./models/model_walk.pt
+    homie_stand_model_path: ./models/model_stand.pt
+    homie_command_dim: 3
+    non_homie_command_actions_dim: 16  # 14 upper body dofs + 2 finger primitives
+    opt_homie: False
+    desired_kl: 0.005
+
+    init_noise_std: 0.8
+    max_noise_std: 0.8
+    clamp_noise_std: True
+    save_interval: 500
+
+    gamma: 0.9975
+    lam: 0.985
+
+    init_at_random_ep_len: True
+
+    actor:
+      _target_: gr00t.rl.trl.modules.actor_critic_modules_recurrent.RecurrentActor
+      running_mean_std: True
+      rnn_type: "lstm"
+      rnn_hidden_dim: 256
+      rnn_num_layers: 2
+      backbone:
+        _target_: gr00t.rl.agents.modules.modules.BaseModule
+        process_output_dim: True
+        module_config_dict:
+          input_dim: [actor_obs]
+          output_dim:
+            - ${eval:'${algo.config.homie_command_dim} + ${algo.config.non_homie_command_actions_dim}'}
+          layer_config:
+            type: MLP
+            hidden_dims: [512, 256, 128]
+            activation: SiLU
+    critic:
+      _target_: gr00t.rl.trl.modules.actor_critic_modules_recurrent.RecurrentCritic
+      running_mean_std: True
+      rnn_type: "lstm"
+      rnn_hidden_dim: 256
+      rnn_num_layers: 2
+      backbone:
+        _target_: gr00t.rl.agents.modules.modules.BaseModule
+        process_output_dim: True
+        module_config_dict:
+          type: MLP
+          input_dim: [critic_obs]
+          output_dim: [1]
+          layer_config:
+            type: MLP
+            hidden_dims: [512, 256, 128]
+            activation: SiLU
+
+simulator:
+  config:
+    scene:
+      replicate_physics: False
+      env_spacing: 20.0
+    sim:
+      physx:
+        num_position_iterations: 8
+        num_velocity_iterations: 4
+
+robot:
+  asset:
+    self_collisions: 0
+  finger_primitive:
+    primitive_action_map:
+      left:
+        pos_0: [
+          -1.0472, -1.0472, 0.0,
+          -0.523599, -0.523599, -0.523599,
+          0.523599
+        ]
+        pos_1: [
+          -1.5708, -1.5708, 0.0,
+          -1.5708, -1.5708, 0.785398,
+          1.5708
+        ]
+      right:
+        pos_0: [
+          1.0472, 1.0472, 0.0,
+          0.523599, 0.523599, 0.523599,
+          -0.523599
+        ]
+        pos_1: [
+          1.5708, 1.5708, 0.0,
+          1.5708, 1.5708, -0.785398,
+          -1.5708
+        ]
+  use_primitive: True
+  actions_dim: 31
+  check_action_dim: False
+  terminate_after_contacts_on : ["head", "knee", "wrist"]

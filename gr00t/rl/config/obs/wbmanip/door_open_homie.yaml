@@ -1,0 +1,260 @@
+# @package _global_
+
+# Be careful when using _raw, history
+obs:
+  obs_dict:
+    actor_obs: [
+      dof_pos,
+      relative_to_door,
+      dof_vel,
+      actions,
+      projected_gravity,
+      door_dof_pos,
+      base_lin_vel,
+      base_ang_vel,
+      hand_force,
+      stage,
+      privileged_door_info,
+      delta_actions,
+      hand_handle_transform,
+      unwarped_actions,
+
+      b_homie_commands
+    ]
+
+    critic_obs: [
+      dof_pos,
+      relative_to_door,
+      dof_vel,
+      actions,
+      projected_gravity,
+      door_dof_pos,
+      base_lin_vel,
+      base_ang_vel,
+      hand_force,
+      stage,
+      privileged_door_info,
+      delta_actions,
+      hand_handle_transform,
+      unwarped_actions,
+
+      transition,
+      complete,
+
+      time_in_stage,
+      actual_time_in_stage,
+      total_time,
+
+      b_homie_commands
+    ]
+
+    homie_obs: [
+      a_history_homie,
+      b_homie_commands,
+      c_homie_base_ang_vel,
+      d_homie_projected_gravity,
+      # homie_torso_ang_vel,
+      # homie_torso_projected_gravity,
+      e_homie_dof_pos,
+      f_homie_dof_vel,
+      g_homie_body_actions,
+      # homie_clock_inputs,
+    ]
+
+  # define those coumpounds in obs_dict, for example, you can define different long/short history with different length
+  obs_auxiliary:
+    history_long: {
+      dof_pos: 20,
+      relative_to_door: 20,
+      dof_vel: 2,
+      actions: 15,
+      projected_gravity: 15,
+      door_dof_pos: 15,
+      base_lin_vel: 15,
+      base_ang_vel: 15,
+      hand_force: 15,
+      stage: 15,
+      privileged_door_info: 15,
+      delta_actions: 15,
+      hand_handle_transform: 15,
+
+      transition: 15,
+      complete: 15,
+
+      time_in_stage: 15,
+      actual_time_in_stage: 15,
+    }
+
+    a_history_homie: {
+      b_homie_commands: 5,
+      c_homie_base_ang_vel: 5,
+      d_homie_projected_gravity: 5,
+      # homie_torso_ang_vel: 5,
+      # homie_torso_projected_gravity: 5,
+      e_homie_dof_pos: 5,
+      f_homie_dof_vel: 5,
+      g_homie_body_actions: 5,
+      # homie_clock_inputs: 5,
+    }
+
+    history_short: {
+      dof_pos: 3,
+      relative_to_door: 3,
+      dof_vel: 2,
+      actions: 1,
+      projected_gravity: 1,
+      door_dof_pos: 2,
+      base_lin_vel: 2,
+      base_ang_vel: 2,
+      hand_force: 2,
+      stage: 2,
+      privileged_door_info: 2,
+      delta_actions: 2,
+      hand_handle_transform: 2,
+
+      transition: 2,
+      complete: 2,
+
+      time_in_stage: 2,
+      actual_time_in_stage: 2,
+    }
+
+  homie_history_length: 5
+
+  obs_scales: {
+    dof_pos: 1.0,
+    relative_to_door: 1.0,
+    dof_vel: 0.05,
+    history: 1.0,
+    actions: 1.0,
+    projected_gravity: 1.0,
+    door_dof_pos: 1.0,
+    base_lin_vel: 1.0,
+    base_ang_vel: 0.5,
+    hand_force: 0.01,
+    stage: 1.0,
+    privileged_door_info: 1.0,
+    delta_actions: 1.0,
+    hand_handle_transform: 1.0,
+    unwarped_actions: 1.0,
+
+    transition: 1.0,
+    complete: 1.0,
+
+    time_in_stage: 1.0,
+    actual_time_in_stage: 1.0,
+    total_time: 1.0,
+
+    b_homie_commands: 1.0,
+    e_homie_dof_pos: 1.0,
+    f_homie_dof_vel: 0.05,
+    c_homie_base_ang_vel: 0.5,
+    d_homie_projected_gravity: 1.0,
+    # homie_torso_ang_vel: 0.5,
+    # homie_torso_projected_gravity: 1.0,
+    g_homie_body_actions: 1.0,
+    # homie_clock_inputs: 1.0,
+    a_history_homie: 1.0
+  }
+
+  noise_scales: {
+    dof_pos: 0.01,
+    relative_to_door: 0.0,
+    dof_vel: 0.2,
+    history: 0.0,
+    actions: 0.0,
+    projected_gravity: 0.0,
+    door_dof_pos: 0.0,
+    base_lin_vel: 0.0,
+    base_ang_vel: 0.0,
+    hand_force: 0.0,
+    stage: 0.0,
+    privileged_door_info: 0.0,
+    delta_actions: 0.0,
+    hand_handle_transform: 0.0,
+    unwarped_actions: 0.0,
+
+    transition: 0.0,
+    complete: 0.0,
+
+    time_in_stage: 0.0,
+    actual_time_in_stage: 0.0,
+    total_time: 0.0,
+
+    b_homie_commands: 0.0,
+    e_homie_dof_pos: 0.01,
+    f_homie_dof_vel: 0.2,
+    c_homie_base_ang_vel: 0.0,
+    d_homie_projected_gravity: 0.0,
+    # homie_torso_ang_vel: 0.0,
+    # homie_torso_projected_gravity: 0.0,
+    g_homie_body_actions: 0.0,
+    # homie_clock_inputs: 0.0,
+    a_history_homie: 0.0
+  }
+
+  add_noise_currculum: False
+  noise_initial_value: 0.05
+  noise_value_max: 1.00
+  noise_value_min: 0.00001
+  soft_dof_pos_curriculum_degree: 0.00001
+  soft_dof_pos_curriculum_level_down_threshold: 100
+  soft_dof_pos_curriculum_level_up_threshold: 900
+
+  obs_dims:
+    - dof_pos: ${robot.dof_obs_size}
+    - hand_force: ${eval:'2 * 8 * 3'}
+    - relative_to_door: 9
+    - dof_vel: ${robot.dof_obs_size}
+    - actions: ${robot.actions_dim}
+    - projected_gravity: 3
+    - door_dof_pos: 2
+    - base_lin_vel: 3
+    - base_ang_vel: 3
+    - stage: ${eval:'len(${env.config.max_stage_time})'}
+    - privileged_door_info: 8
+    - hand_handle_transform: 18
+    - b_homie_commands: 7
+    - e_homie_dof_pos: ${robot.homie_dof_obs_size}
+    - f_homie_dof_vel: ${robot.homie_dof_obs_size}
+    - c_homie_base_ang_vel: 3
+    - d_homie_projected_gravity: 3
+    # - homie_torso_ang_vel: 3
+    # - homie_torso_projected_gravity: 3
+    - g_homie_body_actions: ${robot.lower_body_actions_dim}
+    #- homie_clock_inputs: 2
+    - transition: 1
+    - complete: 1
+    - time_in_stage: 1
+    - actual_time_in_stage: 1
+    - total_time: 1
+    - delta_actions: ${eval:'len(${env.config.delta_action_indices})'}
+    - unwarped_actions: ${eval:'len(${env.config.warped_action.indices})'}
+
+  homie_command_keys: {
+    # 'loco_vel', 'height', 'rpy', 'left_arm', 'right_arm'
+    'loco_vel', 'left_arm', 'right_arm', 'left_hand', 'right_hand'
+    #, 'left_arm'
+  }
+
+  homie_command_default: {
+    'loco_vel': [0.0, 0.0, 0.0],
+    'height': [0.0],
+    'rpy': [0.0, 0.0, 0.0],
+    'left_arm': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+    'right_arm': [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+    'left_hand': [0.0],
+    'right_hand': [0.0],
+  }
+
+  homie_command_index: {
+    'loco_vel': [0, 1, 2],
+    'height': [3],
+    'rpy': [4, 5, 6],
+    'left_arm': [7, 8, 9, 10, 11, 12, 13],
+    'right_arm': [14, 15, 16, 17, 18, 19, 20],
+    'left_hand': [21],
+    'right_hand': [22], # 7 + 28 = 35
+  }
+
+  homie_default_height: 0.74

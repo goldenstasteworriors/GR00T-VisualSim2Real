@@ -70,9 +70,14 @@ def preload_materials(stage: Usd.Stage, material_list: list[str], material_root_
                     shader_prim.CreateAttribute("inputs:diffuse_tint", Sdf.ValueTypeNames.Color3f).Set(Gf.Vec3f(*np.random.exponential(0.02, 3)))
                 material_count += 1
                 material_prim_paths.append(material_prim_path)
-    write_custom_data_to_prim(stage, material_root_prim_path, {
-        "material_prim_paths": material_prim_paths
-    })
+    if material_prim_paths:
+        write_custom_data_to_prim(stage, material_root_prim_path, {
+            "material_prim_paths": material_prim_paths
+        })
+    else:
+        print(f"Warning: No materials were loaded for {material_root_prim_path}. "
+              "Material randomization will be skipped. This may happen if Omniverse Nucleus "
+              "materials are not accessible.")
     return material_prim_paths
 
 

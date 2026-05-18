@@ -42,64 +42,40 @@ This repository contains the official code for:
 ---
 
 
-# VIRAL: Visual Sim-to-Real at Scale for Humanoid Loco-Manipulation
+# DoorMan: Door-Opening Loco-Manipulation for Humanoid Robots
 
-A reinforcement learning framework for humanoid robot loco-manipulation on the **Unitree G1** robot. The codebase supports:
+Reinforcement learning for humanoid robot door-opening on the Unitree G1 robot. This codebase supports:
 
-- **Teacher Training** -- PPO-based policy training with privileged state observations
-- **Student Training** -- Vision-based policy distillation (DAgger) from a trained teacher using RGB camera input
-- **Evaluation** -- Evaluate trained teacher or student checkpoints, with optional ONNX export for deployment
+- **Teacher training**: PPO with LSTM actor/critic using privileged state observations
+- **Student training**: Vision-based policy distillation (DAgger) with ResNet18 + LSTM from a trained teacher
+- **Evaluation**: Evaluate trained teacher or student checkpoints, with optional ONNX export
+
+The task involves a 6-stage door-opening pipeline: walk to door, pregrasp, grasp handle, open handle, swing door open, and walk through.
 
 Built on [Isaac Lab](https://isaac-sim.github.io/IsaacLab/) (Isaac Sim 5.1), [TRL](https://github.com/huggingface/trl), and [Hydra](https://hydra.cc/) for configuration management.
-
-## Table of Contents
-
-- [GR00T-VisualSim2Real](#gr00t-visualsim2real)
-  - [Overview](#overview)
-- [VIRAL: Visual Sim-to-Real at Scale for Humanoid Loco-Manipulation](#viral-visual-sim-to-real-at-scale-for-humanoid-loco-manipulation)
-  - [Table of Contents](#table-of-contents)
-  - [Prerequisites](#prerequisites)
-  - [Installation](#installation)
-    - [1. Create conda environment](#1-create-conda-environment)
-    - [2. Install Isaac Sim 5.1](#2-install-isaac-sim-51)
-    - [3. Install Isaac Lab](#3-install-isaac-lab)
-    - [4. Install this package](#4-install-this-package)
-    - [5. Verify installation](#5-verify-installation)
-  - [Usage](#usage)
-    - [Teacher Training (PPO)](#teacher-training-ppo)
-    - [Teacher Evaluation](#teacher-evaluation)
-    - [Student Training (DAgger Distillation)](#student-training-dagger-distillation)
-    - [Student Evaluation](#student-evaluation)
-  - [Configuration](#configuration)
-    - [Experiment Tracking](#experiment-tracking)
-  - [ONNX Export](#onnx-export)
-  - [Project Structure](#project-structure)
-  - [License](#license)
-  - [Copyright \& Attribution](#copyright--attribution)
-  - [Citation](#citation)
 
 ## Prerequisites
 
 - Ubuntu 22.04
 - NVIDIA GPU with driver >= 535
-- [Isaac Sim 5.1](https://docs.omniverse.nvidia.com/isaacsim/latest/installation/install_workstation.html)
-- [Isaac Lab](https://isaac-sim.github.io/IsaacLab/)
 - Conda or Mamba
 
-## Installation
+## Environment Setup
 
 ### 1. Create conda environment
 
 ```bash
-conda create -n viral python=3.11 -y
-conda activate viral
+conda create -n isaacsim5.1 python=3.11 -y
+conda activate isaacsim5.1
 ```
 
 ### 2. Install Isaac Sim 5.1
 
 ```bash
+# Install PyTorch with CUDA support
 pip install torch==2.7.0 torchvision==0.22.0 --index-url https://download.pytorch.org/whl/cu128
 
+# Install Isaac Sim 5.1
 pip install isaacsim==5.1.0.0 isaacsim-rl==5.1.0.0
 ```
 
@@ -108,17 +84,20 @@ pip install isaacsim==5.1.0.0 isaacsim-rl==5.1.0.0
 Clone or download [Isaac Lab](https://github.com/isaac-sim/IsaacLab) and install:
 
 ```bash
+# Pre-install build dependencies
 pip install setuptools poetry-core flatdict
 
+# Install Isaac Lab core and extensions
 pip install --no-build-isolation -e <path-to-IsaacLab>/source/isaaclab
 pip install --no-build-isolation -e <path-to-IsaacLab>/source/isaaclab_assets \
     -e <path-to-IsaacLab>/source/isaaclab_tasks \
     -e "<path-to-IsaacLab>/source/isaaclab_rl[all]"
 
+# Fix numpy version to match Isaac Sim requirements
 pip install numpy==1.26.0
 ```
 
-Verify the install:
+Verify `isaaclab` is importable:
 
 ```bash
 python -c "import isaaclab; print(isaaclab.__file__)"
@@ -130,79 +109,163 @@ python -c "import isaaclab; print(isaaclab.__file__)"
 cd <path-to-this-repo>
 pip install -e .
 
-pip install numpy==1.26.0   # pip may upgrade it; pin again
+# Fix numpy version again (pip may upgrade it)
+pip install numpy==1.26.0
 ```
 
-### 5. Verify installation
+### 5. Download LAFAN-G1 motion dataset
+
+The door task uses the LAFAN-G1 dataset for robot reset initialization. Download it from Hugging Face:
 
 ```bash
-python -c "from gr00t.rl.envs.base_task.base_task import BaseTask; print('OK')"
+# Install git-lfs if not already installed
+sudo apt install git-lfs
+git lfs install
+
+# Clone the dataset into the same parent directory as this repo
+# e.g., if this repo is at ~/projects/VIRAL, clone to ~/projects/LAFAN-G1
+cd <parent-directory-of-this-repo>
+git clone https://huggingface.co/datasets/ember-lab-berkeley/LAFAN-G1
+```
+
+The LAFAN-G1 directory must be at the same folder level as this repo (i.e., sibling directories). The expected layout is:
+
+```
+projects/
+├── VIRAL/          # This repo
+└── LAFAN-G1/       # LAFAN-G1 dataset
+```
+
+### 6. Download HOMIE locomotion models
+
+The door task uses HOMIE locomotion models for lower-body control. Place the following model files in the repo root `./models/` directory:
+- `model_walk.pt` - Walking locomotion policy
+- `model_stand.pt` - Standing locomotion policy
+
+### 7. Verify installation
+
+```bash
+python -c "from gr00t.rl.envs.door.door_open_homie import DoorPregrasp; print('OK')"
+```
+
+## Project Structure
+
+```
+gr00t/rl/
+├── train_agent_trl.py          # Training entry point (teacher & student)
+├── eval_agent_trl.py           # Evaluation entry point
+├── config/                     # Hydra YAML configs
+│   ├── base.yaml               # Base training config
+│   ├── base_eval.yaml          # Base evaluation config
+│   ├── exp/wbmanip/            # Door experiment configs
+│   ├── algo/                   # Algorithm configs (PPO, DAgger)
+│   ├── env/                    # Environment configs
+│   ├── robot/g1/               # Robot configs (G1 43-DOF)
+│   ├── rewards/wbmanip/        # Reward function configs
+│   ├── obs/wbmanip/            # Observation configs
+│   └── domain_rand/            # Domain randomization configs
+├── envs/                       # Environment implementations
+│   ├── base_task/              # Base task classes (staged, delta, homie, finger primitive)
+│   ├── door/                   # Door-opening task (DoorPregrasp)
+│   └── legged_base_task/       # Legged robot base
+├── trl/                        # TRL-based trainers and modules
+│   ├── trainer/                # PPO and distillation trainers
+│   ├── modules/                # Actor-critic network modules (MLP, LSTM, Vision)
+│   ├── callbacks/              # Training callbacks (save, eval, wandb)
+│   └── utils/                  # Training utilities
+├── agents/modules/             # Neural network building blocks (MLP, CNN, ResNet)
+├── simulator/isaacsim/         # Isaac Sim interface
+├── data/                       # Task data
+│   ├── robots/g1/              # G1 robot USD assets
+│   ├── motions/g1_wsg/         # Door demonstration motion data
+│   ├── objects/grab/           # Door handle assets
+│   └── tasks/door/             # Door scenario configuration
+└── utils/                      # General utilities
+```
+
+## Door Asset Generation
+
+During training, door assets are procedurally generated on the fly. You can also generate them **offline** — see [gr00t/rl/scripts/README.md](gr00t/rl/scripts/README.md) for full documentation.
+
+<p align="center">
+  <img src="./media/door_assets.gif" width="90%">
+</p>
+
+```bash
+# Quick start: generate 100 doors matching training config
+python gr00t/rl/scripts/generate_door_assets.py \
+    --num_doors 100 --output_dir data/door_assets \
+    --build_latch --add_floors --randomize_material --seed 42
+
+# Generate 1000 doors with diverse configurations
+bash gr00t/rl/scripts/generate_1000_doors.sh
 ```
 
 ## Usage
 
-### Teacher Training (PPO)
+### Teacher Training (PPO + LSTM)
 
-Train a teacher policy using privileged state observations:
+Train a teacher policy using privileged state observations with LSTM memory. The experiment config is at [`gr00t/rl/config/exp/wbmanip/door_open_homie_lstm.yaml`](gr00t/rl/config/exp/wbmanip/door_open_homie_lstm.yaml).
 
 ```bash
-HYDRA_FULL_ERROR=1 accelerate launch --num_processes 1 \
-    gr00t/rl/train_agent_trl.py \
-    +exp=loco_manip/walk_stand_place_grasp_turn_homie \
-    num_envs=48 \
-    project_name=wsdpt_teacher
+python gr00t/rl/train_agent_trl.py \
+    +exp=wbmanip/door_open_homie_lstm \
+    ++num_envs=1024 \
+    ++algo.config.entropy_coef=0.001 \
+    ++algo.config.num_steps_per_env=32 \
+    ++env.config.delta_action_scale=0.3
 ```
 
-> **Tip:** Add `headless=False` to open the Isaac Sim GUI and watch training live.
-
-<p align="center">
-  <img src="./media/viral-teacher-gif.gif" width="60%"><br/>
-  <em>Teacher policy running in Isaac Sim</em>
-</p>
-
-| Argument | Description |
-|---|---|
-| `num_envs` | Number of parallel environments (higher = faster, more VRAM) |
-| `project_name` | Weights & Biases project name |
-| `headless` | `True` (default) for headless; `False` to open GUI |
-| `env.config.reset_from_dataset.enable` | Reset from demonstration dataset |
+Key arguments:
+- `num_envs`: Number of parallel environments (1024 recommended; reduce if GPU memory limited)
+- `algo.config.entropy_coef`: Entropy coefficient for exploration
+- `algo.config.num_steps_per_env`: Rollout length per environment per update
+- `env.config.delta_action_scale`: Scale for delta action space
 
 ### Teacher Evaluation
 
+Evaluate a trained teacher checkpoint:
+
 ```bash
 python gr00t/rl/eval_agent_trl.py \
-    +checkpoint=logs_rl/<experiment_dir>/model_step_044500.pt
+    +checkpoint=<path_to_checkpoint.pt>
 ```
 
-### Student Training (DAgger Distillation)
+For example:
+```bash
+python gr00t/rl/eval_agent_trl.py \
+    +checkpoint=logs_rl/g1_open_door_homie/wbmanip/door_open_homie_lstm-20250101_120000/model_step_020000.pt
+```
 
-Train a vision-based student policy by distilling from a trained teacher:
+### Student Training (DAgger + ResNet18 + LSTM)
 
-1. Update the teacher checkpoint path in the experiment config:
+Train a vision-based student policy by distilling from a trained teacher. The experiment config is at [`gr00t/rl/config/exp/wbmanip/door_open_homie_dagger-lstm.yaml`](gr00t/rl/config/exp/wbmanip/door_open_homie_dagger-lstm.yaml).
+
+```bash
+python gr00t/rl/train_agent_trl.py \
+    +exp=wbmanip/door_open_homie_dagger-lstm \
+    ++num_envs=64 \
+    ++algo.config.num_steps_per_env=32 \
+    ++algo.config.actor.backbone.vision_module.module_config_dict.layer_config.trainable=True \
+    ++algo.config.obj_pred_loss_coef=1.0 \
+    ++algo.config.actor.running_mean_std=True \
+    ++algo.config.num_learning_epochs=1 \
+    ++algo.config.num_mini_batches=64 \
+    ++algo.config.teacher_rollout_ratio=0.3
+```
+
+**Important**: Before running student training, update the `teacher_actor_path` in the experiment config to point to your trained teacher checkpoint:
 
 ```yaml
-# gr00t/rl/config/exp/loco_manip/wsdpt_student_for_teacher_v8q8.002_resnet_rgb_delay.yaml
+# In gr00t/rl/config/exp/wbmanip/door_open_homie_dagger-lstm.yaml
 teacher_actor_path: logs_rl/<your_teacher_experiment>/model_step_XXXXXX.pt
 ```
 
-2. Launch training:
-
-```bash
-HYDRA_FULL_ERROR=1 accelerate launch --num_processes 1 \
-    gr00t/rl/train_agent_trl.py \
-    +exp=loco_manip/wsdpt_student_for_teacher_v8q8.002_resnet_rgb_delay \
-    num_envs=8 \
-    headless=True \
-    experiment_name=wsdpt_student \
-    project_name=wsdpt_student_debug
-```
-
-If you add `headless=False`, you can see the student policy running in Isaac Sim:
-
-<p align="center">
-  <img src="./media/viral-student-gif.gif" width="60%"><br/>
-  <em>Student policy running in Isaac Sim</em>
-</p>
+Key student training arguments:
+- `num_envs`: Number of parallel environments (64 recommended for vision training)
+- `algo.config.teacher_rollout_ratio`: Fraction of rollouts using the teacher policy (curriculum)
+- `algo.config.obj_pred_loss_coef`: Weight for object position prediction auxiliary loss
+- `algo.config.actor.backbone.vision_module.module_config_dict.layer_config.trainable`: Whether to fine-tune ResNet18 backbone
 
 ### Student Evaluation
 
@@ -213,71 +276,37 @@ python gr00t/rl/eval_agent_trl.py \
 
 ## Configuration
 
-This project uses [Hydra](https://hydra.cc/) for configuration. Configs are composed from YAML files in `gr00t/rl/config/`. Override any value from the command line:
+This project uses [Hydra](https://hydra.cc/) for configuration. Configs are composed from YAML files in `gr00t/rl/config/`. Override any config value from the command line with `++`:
 
 ```bash
-# Number of environments
-... num_envs=16
+# Override number of environments
+... ++num_envs=16
 
-# Reward weights
-... rewards.reward_scales.tracking_lin_vel=1.0
+# Override reward weights
+... ++rewards.reward_scales.walk_to_door=10.0
 
-# Training hyperparameters
-... algo.config.actor_learning_rate=1e-4
+# Override training hyperparameters
+... ++algo.config.actor_learning_rate=1e-4
 ```
 
-### Experiment Tracking
+## Experiment Tracking
 
-Training logs to [Weights & Biases](https://wandb.ai/) by default:
+Training logs to [Weights & Biases](https://wandb.ai/) by default. Set your wandb credentials:
 
 ```bash
 wandb login
 ```
 
-Checkpoints are saved to `logs_rl/<experiment_name>/` at intervals controlled by the `save_frequency` callback parameter.
+Checkpoints are saved to `logs_rl/<project_name>/<experiment_name>/` with periodic model saves controlled by the `save_interval` parameter (default: 500 steps).
 
 ## ONNX Export
 
-During evaluation with `num_envs=1`, the policy is automatically exported as ONNX for deployment:
+During evaluation with `num_envs=1`, the policy can be exported as ONNX for deployment:
 
 ```bash
 python gr00t/rl/eval_agent_trl.py \
     +checkpoint=<path_to_checkpoint.pt> \
     num_envs=1
-```
-
-The exported model is saved to `<experiment_dir>/exported/`.
-
-
-## Project Structure
-
-```
-gr00t/rl/
-├── train_agent_trl.py          # Training entry point (teacher & student)
-├── eval_agent_trl.py           # Evaluation entry point
-├── config/                     # Hydra YAML configs
-│   ├── base.yaml               #   Base training config
-│   ├── base_eval.yaml          #   Base evaluation config
-│   ├── exp/loco_manip/         #   Experiment configs
-│   ├── algo/                   #   Algorithm configs (PPO, DAgger)
-│   ├── env/                    #   Environment configs
-│   ├── robot/g1/               #   Robot configs (G1 43-DOF)
-│   ├── rewards/                #   Reward function configs
-│   ├── terrain/                #   Terrain configs
-│   ├── obs/                    #   Observation configs
-│   └── domain_rand/            #   Domain randomization configs
-├── envs/                       # Environment implementations
-│   ├── base_task/              #   Base task classes
-│   └── loco_manip/             #   Loco-manipulation task
-├── trl/                        # TRL-based trainers and modules
-│   ├── trainer/                #   PPO and distillation trainers
-│   ├── modules/                #   Actor-critic network modules
-│   ├── callbacks/              #   Training callbacks
-│   └── utils/                  #   Training utilities
-├── agents/modules/             # Neural network building blocks
-├── simulator/isaacsim/         # Isaac Sim interface
-├── data/                       # Task data (robot assets, scenarios)
-└── utils/                      # General utilities
 ```
 
 ## License
@@ -289,23 +318,3 @@ This project is licensed under the Apache License 2.0. See the [LICENSE](LICENSE
 Copyright (c) 2026 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
 
 This project includes third-party open-source software. Please refer to individual source files for specific licenses and copyright headers.
-
-## Citation
-
-If you find this work useful, please cite:
-
-```bibtex
-@inproceedings{he2025viral,
-    title={VIRAL: Visual Sim-to-Real at Scale for Humanoid Loco-Manipulation},
-    author={He, Tairan and Wang, Zi and Xue, Haoru and Ben, Qingwei and Luo, Zhengyi and Xiao, Wenli and Yuan, Ye and Da, Xingye and Castañeda, Fernando and Sastry, Shankar and Liu, Changliu and Shi, Guanya and Fan, Linxi and Zhu, Yuke},
-    booktitle={Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
-    year={2026}
-}
-
-@inproceedings{xue2025opening,
-  title={Opening the Sim-to-Real Door for Humanoid Pixel-to-Action Policy Transfer},
-  author={Xue, Haoru and He, Tairan and Wang, Zi and Ben, Qingwei and Xiao, Wenli and Luo, Zhengyi and Da, Xingye and Casta{\~n}eda, Fernando and Shi, Guanya and Sastry, Shankar and others},
-  booktitle={Proceedings of the IEEE/CVF Conference on Computer Vision and Pattern Recognition (CVPR)},
-  year={2026}
-}
-```

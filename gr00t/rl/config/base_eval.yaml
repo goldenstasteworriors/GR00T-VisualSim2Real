@@ -1,6 +1,7 @@
 # @package _global_
 
 checkpoint: ???
+experiment_dir: null
 
 # algo:
 #   config:

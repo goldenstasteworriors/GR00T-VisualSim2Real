@@ -1,0 +1,182 @@
+# @package _global_
+
+defaults:
+  - legged_base
+
+# Env structure
+env:
+  _target_: gr00t.rl.envs.door.door_open_homie.DoorPregrasp
+  config:
+    max_episode_length_s: 20
+
+    normalization:
+      clip_actions: 100.0
+      clip_observations: 100.0
+
+    # simulator:
+    #   sim:
+    #     fps: 200 # 1/dt , dt = 0.005
+    #     control_decimation: 4  # decimation
+    #     substeps: 1
+    termination:
+      terminate_when_close_to_dof_pos_limit: False
+      terminate_when_close_to_dof_vel_limit: False
+      terminate_when_close_to_torque_limit: False
+      terminate_by_contact: False
+      terminate_by_gravity: False
+      terminate_by_low_height: True
+    termination_scales:
+      termination_close_to_dof_pos_limit : 0.98
+      termination_close_to_dof_vel_limit : 0.98
+      termination_close_to_torque_limit : 0.98
+      termination_gravity_x : 0.5
+      termination_gravity_y : 0.5
+      termination_min_base_height : 0.5
+      termination_contact_force : 10.0
+    termination_probality:
+      terminate_when_close_to_dof_pos_limit: 0.25
+      terminate_when_close_to_dof_vel_limit: 0.25
+      terminate_when_close_to_torque_limit: 0.25
+
+    noise_to_initial_level: 0
+    init_noise_scale:
+      dof_pos: 0.1
+      dof_vel: 0.15
+      root_pos: 0.05
+      root_rot: 10 # degree, * 3.14 / 180
+      root_vel: 0.01
+      root_ang_vel: 0.01
+
+    task:
+      type: "manipulation"
+      name: "door"
+      objects: ["door"]
+      target_obj: "door"
+      thershold: 0.05
+      target_obj_contact_sensor: False
+      target_obj_contact_sub_prim_path: "door_handle"
+      target_obj_transform_sub_prim_path: "grasp_target"
+      which_hand: "any_hand"
+
+    ref_height: 0.75
+
+    pregrasp_target_vel: 0.3
+    target_root_vel: 0.3
+
+    max_stage_time: [250, 100, 100, 100, 100, 200]
+    award_remaining_time_on_advance: True
+    accumulate_stage_reward: False
+    reset_on_complete: True
+    reset_on_complete_delay: 50.0
+    reset_on_overtime: True
+    # no_reward_for_overtime: True
+    stage_reward_scale: [1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+
+    delta_action_indices: [
+      0, 1, 2,  # homie command
+      3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16,  # upper body
+      17, 18  # finger primitives
+    ]
+    delta_action_scale: 0.3
+    delta_action_clip: 15.0
+    reset_delta_actions_with_backmap: True
+
+    warped_action:
+      indices: [0, 1, 2]
+      k: 0.0
+      s: 0.0
+
+    enable_staged_reset: True
+    staged_reset_ratios: [0.5, 0.1, 0.1, 0.1, 0.1, 0.1]
+    staged_reset_max_samples_per_stage: 200
+
+    target_root_pos: [2.0, 0.0, 0.72]
+
+    randomize_door_init_state: False
+
+    resting_dof_pos: [
+      -0.1, 0, 0, 0.3, -0.2, 0,  # l hip knee ankle
+      -0.1, 0, 0, 0.3, -0.2, 0,  # r hip knee ankle
+      0, 0, 0,  # waist
+      0.261799, 0.174533, 0, 0.261799,  # l shoulder elbow
+      1.5708, 0, 0,  # l wrist
+      0.261799, -0.174533, 0, 0.261799,  # r shoulder elbow
+      -1.5708, 0, 0,  # r wrist
+      -1.0472, -1.0472, 0,  # l hand 0
+      1.0472, 1.0472, 0,  # r hand 0
+      -0.523599, -0.523599, 0,  # l hand 1
+      0.523599, 0.523599, 0,  # r hand 1
+      0.523599, -0.523599  # lr thumb 2
+    ]
+
+    clip_homie_command: True
+    clip_homie_linvel_x_threshold: 0.5
+    clip_homie_linvel_y_threshold: 0.5
+    clip_homie_angvel_threshold: 0.5
+    clip_homie_lower_height_threshold: 0.3
+    clip_homie_upper_height_threshold: 0.75
+    clip_homie_torso_roll_lower_threshold: -0.5
+    clip_homie_torso_roll_upper_threshold: 0.5
+    clip_homie_torso_pitch_lower_threshold: -0.5
+    clip_homie_torso_pitch_upper_threshold: 0.5
+    clip_homie_torso_yaw_lower_threshold: -0.5
+    clip_homie_torso_yaw_upper_threshold: 0.5
+    homie_command_scale: 0.25
+
+    termination_curriculum:
+      level_down_ave_goal_reached_rate: 0.5
+      level_up_ave_goal_reached_rate: 0.7
+      degree: -0.0001
+      min_level: 0.1
+      max_level: 1.0
+      initial_level: 1.0
+
+    pred_model_path: "pred_model.pth"
+    random_model_path: "random_model.pth"
+    pred_model_num_per_sample: 10
+    pred_model_stride: 5
+    pred_model_baseline_error: 0.001357
+    pred_model:
+      in_features: 3101
+      hidden_features: [1024, 1024, 1024, 1024]
+      out_features: 1
+      activation: relu
+      normalization: batch_norm
+
+    random_model:
+      in_features: 3101
+      hidden_features: [1024, 1024, 1024, 1024]
+      out_features: 1
+      activation: relu
+      normalization: batch_norm
+    reset_from_dataset:
+      use_motion_file_dir: True
+      motion_file_dir: ${oc.env:HOME}/projects/LAFAN-G1
+      motion_files: []
+      device: ""
+      num_per_sample: 10
+      sample_interval_s: 0.1
+      resample_every: 1000
+
+    # latent_model_path: "epoch_90_model.pth"
+    # latent_model_num_per_sample: 10
+    # latent_model_stride: 5
+    # latent_model_baseline_error: 0.026
+    # latent_model_config:
+    #   encoder_type: mlp
+    #   decoder_type: mlp
+    #   encoder:
+    #     in_features: 3101
+    #     hidden_features: [1024, 1024, 1024, 1024]
+    #     out_features: 256
+    #     activation: relu
+    #     normalization: batch_norm
+    #   decoder:
+    #     in_features: 128
+    #     hidden_features: [1024, 1024, 1024, 1024]
+    #     out_features: 3101
+    #     activation: relu
+    #     normalization: batch_norm
+
+# Globally accessible parameters
+log_task_name: door_open

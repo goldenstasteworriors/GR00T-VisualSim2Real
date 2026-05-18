@@ -96,9 +96,9 @@ class DeltaActionBase(LeggedRobotBase):
             if "gt_actions" not in actor_state:
                 # Teacher training mode: zero out policy actions
                 actor_state["actions"][zero_env_ids, :3] = 0.0
-                # logger.warning(
-                #     "overwriting policy actions with zero vel in delta action base STEP"
-                # )
+                logger.warning(
+                    "overwriting policy actions with zero vel in delta action base STEP"
+                )
             # For distillation mode: actions need to be zeroed out if enforce_teacher_rollout is True
             # else:
             #     # Check if enforce_teacher_rollout is True (set by trainer from algo config)

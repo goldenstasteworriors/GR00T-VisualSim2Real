@@ -19,14 +19,14 @@ from gr00t.rl.envs.base_task.base_task import BaseTask
 from gr00t.rl.envs.env_utils.history_handler import HistoryHandler
 from gr00t.rl.envs.env_utils.visualization import Point
 from gr00t.rl.envs.legged_base_task.live_reward_plotter import RewardPlotter
-from gr00t.rl.isaac_utils.rotations import (
+from gr00t.rl.utils.torch_utils import *  # noqa: F403
+from gr00t.rl.isaac_utils.rotations import (  # noqa: E402
     get_euler_xyz_in_tensor,
     quat_from_angle_axis,
     quat_mul_norm,
     wrap_to_pi,
 )
 from gr00t.rl.utils.helpers import parse_observation
-from gr00t.rl.utils.torch_utils import *
 from gr00t.rl.utils.torch_utils import to_torch
 
 # from isaacgym import gymtorch, gymapi, gymutil

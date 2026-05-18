@@ -1,0 +1,126 @@
+# @package _global_
+
+# defaults:
+#   - reward_base
+
+rewards:
+  set_reward: Haoru
+  set_reward_date: 20250825
+  only_positive_rewards: False
+  reward_scales:
+      penalty_dof_acc: -1.0e-5
+      penalty_dof_vel: -1.0e-3
+      penalty_delta_action_rate: -0.01
+      # penalty_action_rate: -0.001
+
+      termination: -1000.0
+      limits_dof_pos: -5.0
+      limits_primitive_action: -1.0
+      # limits_dof_vel: -5.0
+      # limits_torque: -0.1
+
+      # walk to door
+      walk_to_door: 5.0
+      penalty_upper_body_non_finger_deviation_l1: -1.0
+      penalty_face_door: -1.0
+
+      # pregrasp
+      hand_handle_orientation: 3.0
+      pregrasp_finger_dof_pos_l1: 1.5
+      penalty_unused_dof_deviation_l1: -1.0
+      pregrasp_target_distance: 6.0
+      penalty_not_standing_still: -15.0
+
+      # grasp
+      grasp_finger_dof_pos_l1: 3.0
+      grasp_target_distance: 3.0
+      grasp: 0.2
+
+      # open
+      push_door_handle: 6.0
+      push_door_hinge: 6.0
+      push_door_force: 0.3
+
+      # swing
+      dont_push_door_handle: 3.0
+      target_root_distance: 12.0
+      penalty_standing_still: -1.0
+
+      # always on
+      stage: 1.0
+      complete: 4.0
+      success_save_time: 0.5
+      penalty_humanly_dof_limit: -1.0
+      penalty_door_frame_contact: -0.1
+      penalty_door_panel_contact: -0.1
+      # penalty_homie_action_rate: -1.0
+      penalty_homie_action_limit: -1.0
+      penalty_undesired_contact: -0.2
+      penalty_dof_overspeed: -0.1
+      penalty_upright: -1.0
+      # penalty_upper_body_dof_vel: -0.1
+      # penalty_overtime: -1.0
+      # transition: 50.0
+
+  reward_limit:
+    soft_dof_pos_limit: 0.95
+    soft_dof_vel_limit: 0.95
+    soft_torque_limit: 0.9
+
+    reward_limits_curriculum:
+      soft_dof_pos_curriculum: False
+      soft_dof_pos_initial_limit: 1.15
+      soft_dof_pos_max_limit: 1.15
+      soft_dof_pos_min_limit: 0.95
+      soft_dof_pos_curriculum_degree: 0.00000025
+      soft_dof_pos_curriculum_level_down_threshold: 40
+      soft_dof_pos_curriculum_level_up_threshold: 42
+
+      soft_dof_vel_curriculum: False
+      soft_dof_vel_initial_limit: 1.15
+      soft_dof_vel_max_limit: 1.25
+      soft_dof_vel_min_limit: 0.95
+      soft_dof_vel_curriculum_degree: 0.00000025
+      soft_dof_vel_curriculum_level_down_threshold: 40
+      soft_dof_vel_curriculum_level_up_threshold: 42
+
+      soft_torque_curriculum: False
+      soft_torque_initial_limit: 1.15
+      soft_torque_max_limit: 1.25
+      soft_torque_min_limit: 0.85
+      soft_torque_curriculum_degree: 0.00000025
+      soft_torque_curriculum_level_down_threshold: 40
+      soft_torque_curriculum_level_up_threshold: 42
+
+  reward_penalty_curriculum: True
+  reward_initial_penalty_scale : 1.0
+  reward_min_penalty_scale: 0.2
+  reward_max_penalty_scale: 1.0
+  reward_penalty_level_down_ave_goal_reached_rate: 0.5
+  reward_penalty_level_up_ave_goal_reached_rate: 0.7
+  reward_penalty_degree: -0.0001
+  num_compute_average_epl: 10000
+
+  reward_penalty_reward_names : [
+      # walk to door
+      "walk_to_door",
+
+      # pregrasp
+      "hand_handle_orientation",
+      "pregrasp_finger_dof_pos_l1",
+      "pregrasp_target_distance",
+
+      # grasp
+      "grasp_finger_dof_pos_l1",
+      "grasp_target_distance",
+      "grasp",
+
+      # open
+      "push_door_handle",
+      "dont_push_door_handle",
+      "push_door_hinge",
+      "push_door_force",
+
+      # swing
+      "target_root_distance",
+  ]

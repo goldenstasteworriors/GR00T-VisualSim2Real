@@ -1,0 +1,187 @@
+# @package _global_
+
+defaults:
+  - /algo: dagger_vision_distributed
+  - /env: door_open_homie
+  - /simulator: isaacsim
+  - /domain_rand: domain_rand_visual_ImageRand
+  - /rewards: wbmanip/reward_door_open_homie
+  - /robot: g1/g1_43dof
+  - /terrain: terrain_locomotion_plane
+  - /obs: wbmanip/door_open_homie_dagger
+  - /opt: wandb
+  - override /trainer: trl_distill_obj_pred_homie_api
+
+exp_base: ${hydra:runtime.choices.exp}
+exp_var: lstm
+experiment_name: ${exp_base}_${exp_var}
+experiment_dir: ${base_dir}/${project_name}/${experiment_name}-${timestamp}
+
+num_envs: 4096
+project_name: g1_open_door_homie
+
+enable_cameras: true
+headless: True
+
+teacher_actor_path: logs_rl/g1_open_door_homie/wbmanip/door_open_homie_pregrasp-20251014_204826/model_step_020450.pt
+
+callbacks:
+  model_save:
+    save_frequency: 500
+
+algo:
+  config:
+    entropy_coef: 0.01
+    use_new_actor_critic: True
+    num_steps_per_env: 8
+    num_learning_epochs: 1
+    num_mini_batches: 4
+    use_padding_mask: False
+    ppo_shuffle_every_epoch: True
+    sync_advantage_normalization: True
+    actor_learning_rate: 1e-4
+    critic_learning_rate: 1e-4
+    homie_walk_model_path: ./models/model_walk.pt
+    homie_stand_model_path: ./models/model_stand.pt
+    homie_command_dim: 3
+    non_homie_command_actions_dim: 16  # 14 upper body dofs + 2 finger primitives
+    opt_homie: False
+
+    init_noise_std: 0.001
+    max_noise_std: 0.001
+    clamp_noise_std: True
+    freeze_noise_std: True
+
+    gamma: 0.9966
+    lam: 0.983
+
+    init_at_random_ep_len: True
+    rollout_with_teacher_num_steps: 0
+    teacher_rollout_ratio: 0.0
+
+    network_load_dict:
+      teacher_actor:
+        path: ${teacher_actor_path}
+
+    obj_pred_loss_coef: 0.0
+    obj_pred_loss_type: "l2"
+
+    module_dim:
+      actor_obs: -1
+      vision_feature_dim: 128
+
+    actor:
+      _target_: gr00t.rl.trl.modules.vision_actor_critic_modules_obj_pred_recurrent.VisionRecurrentActorObjPred
+      running_mean_std: True
+      rnn_type: "lstm"
+      rnn_hidden_dim: 256
+      rnn_num_layers: 2
+      backbone:
+        vision_module:
+          _target_: gr00t.rl.agents.modules.modules.BaseModule
+          process_output_dim: True
+          module_config_dict:
+            input_dim: [vision_obs]
+            output_dim: [vision_feature_dim]
+            layer_config:
+              type: ResNet
+              resnet_type: resnet18  # Options: resnet18, resnet34, resnet50, resnet101, resnet152
+              pretrained: true       # Use ImageNet pretrained weights
+              trainable: true       # Set to false to freeze ResNet parameters, true to make them trainable
+        mlp_module:
+          _target_: gr00t.rl.agents.modules.modules.BaseModule
+          process_output_dim: True
+          module_config_dict:
+            input_dim: [actor_obs]
+            output_dim:
+              - ${eval:'${algo.config.homie_command_dim} + ${algo.config.non_homie_command_actions_dim}'}
+            layer_config:
+              type: MLP
+              hidden_dims: [512, 256, 128]  # Match teacher architecture
+              activation: SiLU
+        obj_pred_mlp:
+          _target_: gr00t.rl.agents.modules.modules.BaseModule
+          process_output_dim: True
+          module_config_dict:
+            input_dim: [vision_feature_dim]
+            output_dim: [3]  # 3D object position
+            layer_config:
+              type: MLP
+              hidden_dims: [256, 128, 64]
+              activation: SiLU
+    teacher_actor:
+      _target_: gr00t.rl.trl.modules.actor_critic_modules_recurrent.RecurrentActor
+      running_mean_std: True
+      rnn_type: "lstm"
+      rnn_hidden_dim: 256
+      rnn_num_layers: 2
+      backbone:
+        _target_: gr00t.rl.agents.modules.modules.BaseModule
+        process_output_dim: True
+        module_config_dict:
+          input_dim: [teacher_obs]
+          output_dim:
+            - ${eval:'${algo.config.homie_command_dim} + ${algo.config.non_homie_command_actions_dim}'}
+          layer_config:
+            type: MLP
+            hidden_dims: [512, 256, 128]
+            activation: SiLU
+
+simulator:
+  config:
+    randomize_dome_light: True
+    cameras:
+      enable_cameras: true
+      camera_types:
+        - rgb: true
+        - depth: false
+      camera_resolutions: [216, 384]
+      camera_attached_link: "d435_link"
+      camera_pos_offset: [0.0, 0.035, 0.0]
+      camera_rot_offset: [0.99955, 0.0, 0.0299955, 0.0]
+    scene:
+      replicate_physics: False
+      env_spacing: 100.0
+    sim:
+      physx:
+        num_position_iterations: 8
+        num_velocity_iterations: 4
+
+robot:
+  asset:
+    self_collisions: 0
+  finger_primitive:
+    primitive_action_map:
+      left:
+        pos_0: [
+          -1.0472, -1.0472, 0.0,
+          -0.523599, -0.523599, -0.523599,
+          0.523599
+        ]
+        pos_1: [
+          -1.5708, -1.5708, 0.0,
+          -1.5708, -1.5708, 0.785398,
+          1.5708
+        ]
+      right:
+        pos_0: [
+          1.0472, 1.0472, 0.0,
+          0.523599, 0.523599, 0.523599,
+          -0.523599
+        ]
+        pos_1: [
+          1.5708, 1.5708, 0.0,
+          1.5708, 1.5708, -0.785398,
+          -1.5708
+        ]
+  use_primitive: True
+  actions_dim: 31
+  check_action_dim: False
+  terminate_after_contacts_on : ["head", "knee", "wrist"]
+
+env:
+  config:
+    enable_staged_reset: False
+    reset_on_overtime: True
+    reset_on_complete: True
+    reset_on_complete_delay: 25.0

@@ -1,0 +1,94 @@
+# @package _global_
+
+
+defaults:
+  - NO_domain_rand
+
+domain_rand:
+  # image data augmentation
+  image_augmentation:
+    # Whether to enable image augmentation
+    enabled: True
+
+    # Random brightness adjustment
+    brightness:
+      enabled: True
+      probability: 0.25
+      range: [0.7, 2]
+
+    # Random contrast adjustment
+    contrast:
+      enabled: True
+      probability: 0.25
+      range: [0.5, 1.5]
+
+    # Random hue adjustment
+    hue:
+      enabled: True
+      probability: 0.5
+      range: [-0.1, 0.1]
+
+    # Random saturation adjustment
+    saturation:
+      enabled: True
+      probability: 0.25
+      range: [0.5, 2]
+
+    # Random Gaussian noise
+    gaussian_noise:
+      enabled: True
+      probability: 0.25
+      std_range: [0.0, 0.15]
+
+    # Random blur
+    gaussian_blur:
+      enabled: True
+      probability: 0.25
+      kernel_size_range: [3, 5]
+      sigma_range: [0.1, 1.5]
+
+  # depth data augmentation
+  depth_augmentation:
+    # Whether to enable depth augmentation
+    enabled: True
+
+    # Depth value scaling/normalization
+    depth_scaling:
+      enabled: True
+      probability: 0.3
+      scale_range: [0.9, 1.1]  # Scale depth values by this factor
+
+    # Depth noise injection
+    depth_noise:
+      enabled: True
+      probability: 0.3
+      # Gaussian noise
+      gaussian_noise:
+        enabled: True
+        std_range: [0.001, 0.01]  # Standard deviation range for Gaussian noise
+      # Perlin noise (for more realistic sensor noise)
+      perlin_noise:
+        enabled: False
+        scale_range: [0.1, 0.5]  # Scale for Perlin noise
+        amplitude_range: [0.001, 0.005]  # Amplitude of Perlin noise
+
+    # Dropout/masking (simulate missing data)
+    depth_dropout:
+      enabled: True
+      probability: 0.2
+      # Random patches dropout
+      patch_dropout:
+        enabled: True
+        num_patches_range: [1, 5]  # Number of patches to mask
+        patch_size_range: [5, 15]  # Size of each patch (square)
+      # Random pixel dropout
+      pixel_dropout:
+        enabled: True
+        dropout_rate_range: [0.01, 0.05]  # Fraction of pixels to drop
+
+    # Quantization (simulate lower resolution depth sensors)
+    depth_quantization:
+      enabled: True
+      probability: 0.25
+      # Number of depth levels (e.g., 256 for 8-bit, 64 for 6-bit)
+      levels_range: [32, 256]

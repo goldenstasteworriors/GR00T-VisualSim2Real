@@ -1245,8 +1245,8 @@ class IsaacSim(BaseSimulator):
                 # self.scene.sensors["object_table_contact_sensor"] = self.object_table_contact_sensor
 
                 target_obj_transform_prim_path = f"/World/envs/env_.*/{self.task_config.target_obj}"
-                # if self.task_config.get("target_obj_transform_sub_prim_path", None) is not None:
-                #     target_obj_transform_prim_path = os.path.join(target_obj_transform_prim_path, self.task_config.target_obj_transform_sub_prim_path)
+                if self.task_config.get("target_obj_transform_sub_prim_path", None) is not None:
+                    target_obj_transform_prim_path = os.path.join(target_obj_transform_prim_path, self.task_config.target_obj_transform_sub_prim_path)
 
                 left_hand_frame_transformer_config = FrameTransformerCfg(
                     prim_path="/World/envs/env_.*/Robot/left_hand_palm_link",
@@ -1449,7 +1449,16 @@ class IsaacSim(BaseSimulator):
             from gr00t.rl.isaac_utils.playground.env_rand.domelight import RandomDomeLightCfg
 
             dome_light_cfg = RandomDomeLightCfg(
-                texture_file_folder="../rl_data/HDRIs",
+                texture_file_folders=[
+                    "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/4.5/NVIDIA/Assets/Skies/Indoor/",
+                    "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/4.5/NVIDIA/Assets/Skies/Clear/",
+                    "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/4.5/NVIDIA/Assets/Skies/Cloudy/",
+                    "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/4.5/NVIDIA/Assets/Skies/Night/",
+                    "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/4.5/NVIDIA/Assets/Skies/Studio/",
+                    "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/4.5/NVIDIA/Environments/2024_1/DomeLights/Clear/",
+                    "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/4.5/NVIDIA/Environments/2024_1/DomeLights/Cloudy/",
+                    "https://omniverse-content-production.s3-us-west-2.amazonaws.com/Assets/Isaac/4.5/NVIDIA/Environments/2024_1/DomeLights/Indoor/",
+                ],
                 dynamic_randomize_texture=True,
                 dynamic_randomize_texture_interval=1.0,
             )
