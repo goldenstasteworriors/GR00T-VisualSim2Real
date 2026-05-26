@@ -250,9 +250,12 @@ def main(config: OmegaConf):
         dest_path = Path(isaaclab.__file__).resolve().parent.parent.parent.parent / "apps"
         current_file_dir_path = Path(os.path.dirname(os.path.realpath(__file__)))
         if args_cli.enable_cameras and args_cli.headless:
-            source_file = current_file_dir_path / "apps/phc.isaaclab.python.headless.rendering.kit"
-            shutil.copy(source_file, dest_path)
-            args_cli.experience = dest_path / "phc.isaaclab.python.headless.rendering.kit"
+            if DEFAULT_ISAACSIM_VERSION == "4.5":
+                args_cli.experience = dest_path / "isaaclab.python.headless.rendering.kit"
+            else:
+                source_file = current_file_dir_path / "apps/phc.isaaclab.python.headless.rendering.kit"
+                shutil.copy(source_file, dest_path)
+                args_cli.experience = dest_path / "phc.isaaclab.python.headless.rendering.kit"
 
         app_launcher = AppLauncher(args_cli)
         simulation_app = app_launcher.app
