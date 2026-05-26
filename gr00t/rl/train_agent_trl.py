@@ -264,6 +264,16 @@ def main(config: OmegaConf):
 
         app_launcher = AppLauncher(args_cli)
         simulation_app = app_launcher.app
+        if DEFAULT_ISAACSIM_VERSION == "4.5":
+            asset_root = os.environ.get("ISAACSIM_ASSET_ROOT")
+            if asset_root:
+                import carb
+
+                settings = carb.settings.get_settings()
+                settings.set("~/isaacsim_assets/Assets/Isaac/4.5", asset_root)
+                settings.set("/persistent/isaac/asset_root/default", asset_root)
+                settings.set("/persistent/isaac/asset_root/cloud", asset_root)
+                settings.set("/persistent/isaac/asset_root/nvidia", asset_root)
 
     # --- Imports that must come after Isaac Sim initialization ---
     import wandb
