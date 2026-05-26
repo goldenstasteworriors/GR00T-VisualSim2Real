@@ -1112,9 +1112,19 @@ class IsaacSim(BaseSimulator):
 
         else:
 
+            terrain_type = "plane"
+            terrain_usd_path = None
+            if DEFAULT_ISAACSIM_VERSION == "4.5" and os.environ.get("ISAACSIM_ASSET_ROOT"):
+                terrain_type = "usd"
+                terrain_usd_path = os.path.join(
+                    os.environ["ISAACSIM_ASSET_ROOT"],
+                    "Isaac/Environments/Grid/default_environment.usd",
+                )
+
             terrain_config = TerrainImporterCfg(
                 prim_path="/World/ground",
-                terrain_type="plane",
+                terrain_type=terrain_type,
+                usd_path=terrain_usd_path,
                 collision_group=-1,
                 physics_material=sim_utils.RigidBodyMaterialCfg(
                     friction_combine_mode="multiply",
