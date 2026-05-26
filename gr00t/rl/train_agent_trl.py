@@ -274,6 +274,15 @@ def main(config: OmegaConf):
                 settings.set("/persistent/isaac/asset_root/default", asset_root)
                 settings.set("/persistent/isaac/asset_root/cloud", asset_root)
                 settings.set("/persistent/isaac/asset_root/nvidia", asset_root)
+                try:
+                    import isaaclab.utils.assets as isaaclab_assets
+
+                    isaaclab_assets.NUCLEUS_ASSET_ROOT_DIR = asset_root
+                    isaaclab_assets.NVIDIA_NUCLEUS_DIR = f"{asset_root}/NVIDIA"
+                    isaaclab_assets.ISAAC_NUCLEUS_DIR = f"{asset_root}/Isaac"
+                    isaaclab_assets.ISAACLAB_NUCLEUS_DIR = f"{asset_root}/Isaac/IsaacLab"
+                except Exception as err:
+                    logger.warning(f"Failed to override IsaacSim 4.5 asset root: {err}")
 
     # --- Imports that must come after Isaac Sim initialization ---
     import wandb
