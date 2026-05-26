@@ -252,6 +252,11 @@ def main(config: OmegaConf):
         if args_cli.enable_cameras and args_cli.headless:
             if DEFAULT_ISAACSIM_VERSION == "4.5":
                 args_cli.experience = dest_path / "isaaclab.python.headless.rendering.kit"
+                asset_root = os.environ.get("ISAACSIM_ASSET_ROOT")
+                if asset_root:
+                    kit_args = getattr(args_cli, "kit_args", "") or ""
+                    asset_root_arg = f"--/isaacsim_assets/Assets/Isaac/4.5={asset_root}"
+                    args_cli.kit_args = f"{kit_args} {asset_root_arg}".strip()
             else:
                 source_file = current_file_dir_path / "apps/phc.isaaclab.python.headless.rendering.kit"
                 shutil.copy(source_file, dest_path)
